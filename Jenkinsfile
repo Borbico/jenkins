@@ -1,10 +1,32 @@
 pipeline {
-  agent any
+  agent {
+    kubernetes {
+      yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: docker
+    image: gcr.io/google.com/cloudsdktool/cloud-sdk:latest
+    command:
+    - cat
+    tty: true
+    volumeMounts:
+    - name: docker-sock
+      mountPath: /var/run/docker.sock
+  volumes:
+  - name: docker-sock
+    hostPath:
+      path: /var/run/docker.sock
+"""
+    defaultContainer 'docker'
+    }
+  }
 
   environment {
     IMAGE_TAG = "${env.BRANCH_NAME}"
     COLOR = "green"
-    PROJECT_ID = "commanding-fact-262609" 
+    PROJECT_ID = "sport-tournament-655af" 
   }
 
   stages {
@@ -14,13 +36,17 @@ pipeline {
       }
     }
 
-    stage('Build & Push') {
+    stage('Auth & Docker Build') {
       steps {
-        sh """
-        docker build -t gcr.io/$PROJECT_ID/myapp:$IMAGE_TAG .
-        gcloud auth configure-docker
-        docker push gcr.io/$PROJECT_ID/myapp:$IMAGE_TAG
-        """
+        withCredentials([file(credentialsId: 'gcp-jenkins', variable: 'GCLOUD_KEY')]) {
+          sh """
+          gcloud auth activate-service-account --key-file=$GCLOUD_KEY
+          gcloud config set project $PROJECT_ID
+          gcloud auth configure-docker
+          docker build -t gcr.io/$PROJECT_ID/myapp:$IMAGE_TAG .
+          docker push gcr.io/$PROJECT_ID/myapp:$IMAGE_TAG
+          """
+        }
       }
     }
 
