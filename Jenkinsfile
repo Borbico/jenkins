@@ -26,7 +26,7 @@ spec:
   environment {
     IMAGE_TAG = "${env.BRANCH_NAME}"
     COLOR = "green"
-    PROJECT_ID = "sport-tournament-655af" 
+    PROJECT_ID = "commanding-fact-262609" 
   }
 
   stages {
